@@ -13,6 +13,14 @@ cwd = "frontend"
 cmd = "npm run dev"
 cwd = "frontend"
 
+[tasks.frontend-build]
+cmd = "npm run build"
+cwd = "frontend"
+
+[tasks.e2e]
+depends-on = ["frontend-build"]
+cmd = "pytest e2e/"
+
 [dependencies]
 python = "3.12.*"
 django = ">=6.0.4,<7"

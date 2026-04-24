@@ -13,10 +13,6 @@ cwd = "frontend"
 cmd = "npm run dev"
 cwd = "frontend"
 
-[tasks.frontend-test]
-cmd = "npm run test:run"
-cwd = "frontend"
-
 [dependencies]
 python = "3.12.*"
 django = ">=6.0.4,<7"

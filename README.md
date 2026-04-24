@@ -8,10 +8,11 @@ siguiendo metodología BDD.
 
 - Backend Django expone `GET /api/tasks/` con el modelo `Task` (title, done,
   created_at) usando Django REST Framework.
-- Frontend React muestra `"React OK"` (aún no consume la API — eso llega en
-  el siguiente PR).
-- Tests unitarios en ambos lados. BDD con Gherkin + Selenium entra en el
-  PR donde React empiece a consumir la API.
+- Frontend React consume `/api/tasks/` a través del proxy de Vite y renderiza
+  la lista con estados de loading / error / empty / list.
+- Tests unitarios para el backend (pytest + pytest-django). La cobertura del
+  frontend se hace end-to-end con Selenium + BDD (Gherkin) — eso llega en el
+  siguiente PR.
 
 ## Requisitos
 
@@ -101,11 +102,40 @@ Levantar el dev server de Vite en `http://localhost:5173/`:
 pixi run frontend-dev
 ```
 
-Tests unitarios (vitest + React Testing Library + jsdom):
+Vite proxea cualquier `/api/*` a `http://localhost:8000`, así que desde el
+navegador el fetch es same-origin y no hace falta configurar CORS en Django.
+Para verlo en acción tienes que tener **los dos servidores corriendo en
+paralelo** (ver [Dev workflow](#dev-workflow-con-dos-servidores)).
+
+No hay tests unitarios de frontend: la cobertura vive en la suite E2E
+(Selenium + pytest-bdd, PR siguiente). La infraestructura de vitest sigue
+instalada por si algún componente con lógica compleja justifica un test
+aislado en el futuro.
+
+## Dev workflow con dos servidores
+
+Abre dos terminales en la raíz del repo.
+
+Terminal 1 — backend:
 
 ```bash
-pixi run frontend-test
+pixi run python manage.py runserver
 ```
+
+Terminal 2 — frontend:
+
+```bash
+pixi run frontend-dev
+```
+
+Abre `http://localhost:5173/`:
+
+- Si no hay tareas → "No tasks yet"
+- Si hay tareas → lista con `[x] title` (done) o `[ ] title` (pendiente)
+- Si Django está caído → "Failed to load tasks"
+- Brevemente al cargar → "Loading…"
+
+Para poblar tareas crea algunas desde `/admin/` (ver sección de Backend).
 
 ## Estructura
 
@@ -132,17 +162,10 @@ todo-list/
 │       └── test_views.py
 └── frontend/              # app React (Vite)
     ├── package.json
-    ├── vite.config.js
+    ├── vite.config.js     # config + proxy /api → :8000 + vitest
     ├── index.html
     └── src/
-        ├── App.jsx        # renderiza "React OK"
-        ├── App.test.jsx
+        ├── App.jsx        # fetch /api/tasks/ y renderiza lista
         ├── main.jsx
-        └── test-setup.js
+        └── test-setup.js  # setup de vitest (queda para uso futuro)
 ```
-
-## Backend y frontend en paralelo
-
-Durante desarrollo corren en dos servidores separados (Django :8000 y
-Vite :5173). El frontend aún no consume la API — esa integración llega
-en el siguiente PR, junto con los primeros tests BDD en Gherkin + Selenium.

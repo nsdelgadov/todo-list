@@ -13,6 +13,14 @@ cwd = "frontend"
 cmd = "npm run dev"
 cwd = "frontend"
 
+[tasks.frontend-build]
+cmd = "npm run build"
+cwd = "frontend"
+
+[tasks.e2e]
+depends-on = ["frontend-build"]
+cmd = "pytest e2e/"
+
 [dependencies]
 python = "3.12.*"
 django = ">=6.0.4,<7"
@@ -20,3 +28,5 @@ pytest = ">=9.0.3,<10"
 pytest-django = ">=4.12.0,<5"
 nodejs = ">=25.8.2,<25.9"
 djangorestframework = ">=3.17.1,<4"
+selenium = ">=4.43.0,<5"
+pytest-bdd = ">=7.3.0,<8"

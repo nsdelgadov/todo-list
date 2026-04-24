@@ -68,13 +68,13 @@ Respuesta (200):
 ```json
 [
   {
-    "id": 2,
+    "id": "7e3a2b1c-4d5e-6f70-8192-a3b4c5d6e7f8",
     "title": "Walk the dog",
     "done": false,
     "created_at": "2026-04-24T19:15:03.123Z"
   },
   {
-    "id": 1,
+    "id": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
     "title": "Buy milk",
     "done": true,
     "created_at": "2026-04-24T18:55:10.456Z"
@@ -86,7 +86,7 @@ Campos:
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
-| `id` | int | PK autogenerado (read-only). |
+| `id` | UUIDv4 string | PK autogenerado (read-only). No enumerable. |
 | `title` | string | Texto de la tarea (máx 200 chars). |
 | `done` | bool | Si está marcada como hecha. Default `false`. |
 | `created_at` | ISO-8601 datetime | Timestamp de creación (read-only). |

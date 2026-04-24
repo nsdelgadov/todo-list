@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -53,3 +54,5 @@ def test_list_exposes_expected_fields(client):
     assert set(task.keys()) == {"id", "title", "done", "created_at"}
     assert task["title"] == "Buy milk"
     assert task["done"] is False
+    # id must be a UUID (not an enumerable int) — raises ValueError otherwise.
+    uuid.UUID(task["id"])

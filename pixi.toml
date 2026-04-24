@@ -1,0 +1,14 @@
+[workspace]
+authors = ["nsdelgadov <nsdelgadov@gmail.com>"]
+channels = ["conda-forge"]
+name = "todo-list"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.12.*"
+django = ">=6.0.4,<7"
+pytest = ">=9.0.3,<10"
+pytest-django = ">=4.12.0,<5"

@@ -5,7 +5,9 @@ function App() {
   const [status, setStatus] = useState('loading')
 
   useEffect(() => {
-    fetch('/api/tasks/')
+    const controller = new AbortController()
+
+    fetch('/api/tasks/', { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
@@ -16,7 +18,11 @@ function App() {
         setTasks(data)
         setStatus('ready')
       })
-      .catch(() => setStatus('error'))
+      .catch((err) => {
+        if (err.name !== 'AbortError') setStatus('error')
+      })
+
+    return () => controller.abort()
   }, [])
 
   return (

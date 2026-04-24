@@ -5,10 +5,21 @@ name = "todo-list"
 platforms = ["win-64"]
 version = "0.1.0"
 
-[tasks]
+[tasks.frontend-install]
+cmd = "npm install"
+cwd = "frontend"
+
+[tasks.frontend-dev]
+cmd = "npm run dev"
+cwd = "frontend"
+
+[tasks.frontend-test]
+cmd = "npm run test:run"
+cwd = "frontend"
 
 [dependencies]
 python = "3.12.*"
 django = ">=6.0.4,<7"
 pytest = ">=9.0.3,<10"
 pytest-django = ">=4.12.0,<5"
+nodejs = ">=25.8.2,<25.9"

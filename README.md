@@ -4,9 +4,14 @@ Aplicación web "To Do list" construida de forma incremental con Django (backend
 y React (frontend), con tests unitarios y tests de interfaz con Selenium
 siguiendo metodología BDD.
 
-Este repo contiene el backend Django mínimo y un frontend React mínimo
-que renderiza "React OK". El modelo `Task`, el CRUD y los tests
-BDD/Selenium llegan en PRs posteriores.
+## Estado actual
+
+- Backend Django expone `GET /api/tasks/` con el modelo `Task` (title, done,
+  created_at) usando Django REST Framework.
+- Frontend React muestra `"React OK"` (aún no consume la API — eso llega en
+  el siguiente PR).
+- Tests unitarios en ambos lados. BDD con Gherkin + Selenium entra en el
+  PR donde React empiece a consumir la API.
 
 ## Requisitos
 
@@ -21,25 +26,72 @@ pixi install                # resuelve Python + Node y paquetes conda
 pixi run frontend-install   # ejecuta 'npm install' dentro de frontend/
 ```
 
-## Backend (Django)
+## Backend (Django + DRF)
 
-Aplicar migraciones (crea `db.sqlite3` local):
+Aplicar migraciones (crea `db.sqlite3` local con las tablas):
 
 ```bash
 pixi run python manage.py migrate
 ```
 
-Levantar el servidor de desarrollo en `http://127.0.0.1:8000/`:
+Crear un usuario admin para poder cargar tareas a mano desde `/admin/`:
+
+```bash
+pixi run python manage.py createsuperuser
+```
+
+Levantar el servidor de desarrollo:
 
 ```bash
 pixi run python manage.py runserver
 ```
 
-Tests unitarios (pytest + pytest-django):
+Abre:
+- `http://127.0.0.1:8000/` → `Django OK` (endpoint de salud del app `core`)
+- `http://127.0.0.1:8000/admin/` → panel admin, sección **Tasks** para crear/editar
+- `http://127.0.0.1:8000/api/tasks/` → endpoint REST (ver sección API abajo)
+
+Tests unitarios:
 
 ```bash
 pixi run pytest
 ```
+
+## API
+
+### `GET /api/tasks/`
+
+Devuelve todas las tareas ordenadas de más nueva a más vieja.
+
+Respuesta (200):
+
+```json
+[
+  {
+    "id": 2,
+    "title": "Walk the dog",
+    "done": false,
+    "created_at": "2026-04-24T19:15:03.123Z"
+  },
+  {
+    "id": 1,
+    "title": "Buy milk",
+    "done": true,
+    "created_at": "2026-04-24T18:55:10.456Z"
+  }
+]
+```
+
+Campos:
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | int | PK autogenerado (read-only). |
+| `title` | string | Texto de la tarea (máx 200 chars). |
+| `done` | bool | Si está marcada como hecha. Default `false`. |
+| `created_at` | ISO-8601 datetime | Timestamp de creación (read-only). |
+
+Endpoints de creación/edición/borrado aún no existen — llegan en PR #4+.
 
 ## Frontend (React + Vite)
 
@@ -55,12 +107,6 @@ Tests unitarios (vitest + React Testing Library + jsdom):
 pixi run frontend-test
 ```
 
-Build de producción (genera `frontend/dist/`):
-
-```bash
-pixi run --manifest-path pixi.toml npm --prefix frontend run build
-```
-
 ## Estructura
 
 ```
@@ -69,26 +115,34 @@ todo-list/
 ├── pixi.toml / pixi.lock  # dependencias de backend y node
 ├── pytest.ini             # configuración de pytest + pytest-django
 ├── todolist/              # paquete de configuración Django
-│   ├── settings.py
-│   └── urls.py            # incluye core.urls en la raíz
-├── core/                  # app Django principal
-│   ├── views.py           # index → "Django OK"
-│   ├── urls.py
-│   └── tests/             # tests unitarios (pytest)
+│   ├── settings.py        # INSTALLED_APPS incluye rest_framework, core, tasks
+│   └── urls.py            # /admin/, /api/ (tasks), '' (core)
+├── core/                  # app de salud (health check)
+│   ├── views.py           # '/' → "Django OK"
+│   └── tests/
+├── tasks/                 # app del dominio To-Do
+│   ├── models.py          # Task(title, done, created_at)
+│   ├── serializers.py     # TaskSerializer (DRF)
+│   ├── views.py           # TaskViewSet (ReadOnlyModelViewSet por ahora)
+│   ├── urls.py            # DefaultRouter → /tasks/
+│   ├── admin.py           # registro en /admin/
+│   ├── migrations/
+│   └── tests/
+│       ├── test_models.py
 │       └── test_views.py
 └── frontend/              # app React (Vite)
-    ├── package.json       # dependencias npm (gestionadas dentro de frontend/)
-    ├── vite.config.js     # config de Vite + Vitest
+    ├── package.json
+    ├── vite.config.js
     ├── index.html
     └── src/
         ├── App.jsx        # renderiza "React OK"
-        ├── App.test.jsx   # test unitario con RTL
+        ├── App.test.jsx
         ├── main.jsx
-        └── test-setup.js  # registra matchers de jest-dom en vitest
+        └── test-setup.js
 ```
 
 ## Backend y frontend en paralelo
 
 Durante desarrollo corren en dos servidores separados (Django :8000 y
-Vite :5173). Todavía no están integrados — eso llega cuando el frontend
-empiece a consumir la API del backend en PRs siguientes.
+Vite :5173). El frontend aún no consume la API — esa integración llega
+en el siguiente PR, junto con los primeros tests BDD en Gherkin + Selenium.

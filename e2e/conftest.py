@@ -89,7 +89,7 @@ def _wait_until_main_contains(browser, expected):
 
 @then(parsers.parse('I see "{title}" displayed as not done'))
 def _then_pending(browser, title):
-    _wait_until_main_contains(browser, f"[ ] {title}")
+    _wait_until_main_contains(browser, f"[...] {title}")
 
 
 @then(parsers.parse('I see "{title}" displayed as done'))

@@ -81,7 +81,7 @@ function App() {
         <ul>
           {tasks.map((task) => (
             <li key={task.id}>
-              [{task.done ? 'x' : ' '}] {task.title}
+              {task.done ? '[x]' : '[...]'} {task.title}
             </li>
           ))}
         </ul>

@@ -11,6 +11,10 @@ function App() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null)
   const [deletingIds, setDeletingIds] = useState(() => new Set())
   const [deleteErrors, setDeleteErrors] = useState(() => new Map())
+  const [editingId, setEditingId] = useState(null)
+  const [editDraft, setEditDraft] = useState('')
+  const [savingEditIds, setSavingEditIds] = useState(() => new Set())
+  const [editErrors, setEditErrors] = useState(() => new Map())
 
   const loadTasks = useCallback(async (signal) => {
     try {
@@ -145,6 +149,67 @@ function App() {
       })
   }
 
+  function startEdit(task) {
+    setEditingId(task.id)
+    setEditDraft(task.title)
+    setEditErrors((prev) => {
+      if (!prev.has(task.id)) return prev
+      const next = new Map(prev)
+      next.delete(task.id)
+      return next
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditDraft('')
+  }
+
+  function saveEdit(task) {
+    const title = editDraft.trim()
+    if (!title || title.length > 200 || savingEditIds.has(task.id)) return
+
+    setSavingEditIds((prev) => new Set(prev).add(task.id))
+    setEditErrors((prev) => {
+      if (!prev.has(task.id)) return prev
+      const next = new Map(prev)
+      next.delete(task.id)
+      return next
+    })
+
+    fetch(`/api/tasks/${task.id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    })
+      .then((response) =>
+        response.json().then((data) => ({ ok: response.ok, data }))
+      )
+      .then(({ ok, data }) => {
+        if (!ok) {
+          const fieldErrors =
+            data && typeof data === 'object' ? Object.values(data).flat() : []
+          const message = fieldErrors.find((m) => typeof m === 'string')
+          throw new Error(message || 'Failed to save')
+        }
+        setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)))
+        setEditingId(null)
+        setEditDraft('')
+      })
+      .catch((err) => {
+        setEditErrors((prev) =>
+          new Map(prev).set(task.id, err.message || 'Failed to save')
+        )
+      })
+      .finally(() => {
+        setSavingEditIds((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      })
+  }
+
   const canSubmit = newTitle.trim().length > 0 && !submitting
 
   return (
@@ -174,6 +239,50 @@ function App() {
       {status === 'ready' && tasks.length > 0 && (
         <ul>
           {tasks.map((task) => {
+            const isEditing = editingId === task.id
+            const isSavingEdit = savingEditIds.has(task.id)
+            const editError = editErrors.get(task.id)
+
+            if (isEditing) {
+              const trimmedDraft = editDraft.trim()
+              const canSaveEdit =
+                trimmedDraft.length > 0 &&
+                trimmedDraft.length <= 200 &&
+                !isSavingEdit
+              return (
+                <li key={task.id}>
+                  <input
+                    type="text"
+                    value={editDraft}
+                    onChange={(event) => setEditDraft(event.target.value)}
+                    maxLength={201}
+                    disabled={isSavingEdit}
+                    aria-label="Edit task title"
+                  />
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={() => saveEdit(task)}
+                    disabled={!canSaveEdit}
+                  >
+                    {isSavingEdit ? 'Saving…' : 'Save'}
+                  </button>
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={isSavingEdit}
+                  >
+                    Cancel
+                  </button>
+                  {editDraft.length > 200 && (
+                    <span role="status"> Max 200 characters</span>
+                  )}
+                  {editError && <span role="alert"> {editError}</span>}
+                </li>
+              )
+            }
+
             const isToggling = togglingIds.has(task.id)
             const toggleError = toggleErrors.get(task.id)
             const isDeleting = deletingIds.has(task.id)
@@ -196,6 +305,14 @@ function App() {
                   {' '}
                   {task.title}
                 </label>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => startEdit(task)}
+                  disabled={isDeleting}
+                >
+                  Edit
+                </button>
                 {' '}
                 <button
                   type="button"

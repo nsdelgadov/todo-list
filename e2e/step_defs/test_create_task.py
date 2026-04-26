@@ -1,4 +1,4 @@
-from pytest_bdd import parsers, scenarios, when
+from pytest_bdd import parsers, scenarios, then, when
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -21,6 +21,32 @@ def _type_title_of_length(browser, length):
     )
     field.clear()
     field.send_keys("a" * length)
+
+
+@when(parsers.parse("I shorten the new task input to {length:d} characters"))
+def _shorten_new_task_input(browser, length):
+    field = browser.find_element(
+        By.CSS_SELECTOR, "input[aria-label='New task title']"
+    )
+    field.clear()
+    field.send_keys("a" * length)
+
+
+@then(parsers.parse("the new task input contains {length:d} characters"))
+def _new_task_input_has_length(browser, length):
+    field = browser.find_element(
+        By.CSS_SELECTOR, "input[aria-label='New task title']"
+    )
+    WebDriverWait(browser, 10).until(
+        lambda _: len(field.get_attribute("value")) == length
+    )
+
+
+@then(parsers.parse('I do not see "{message}"'))
+def _do_not_see_message(browser, message):
+    WebDriverWait(browser, 10).until(
+        lambda b: message not in b.find_element(By.TAG_NAME, "main").text
+    )
 
 
 @when(parsers.parse('I click "{label}"'))

@@ -15,3 +15,12 @@ Feature: Creating a new task
     And I type a title with 201 characters in the new task input
     And I click "Add"
     Then I see "Ensure this field has no more than 200 characters."
+
+  Scenario: Typing past the limit truncates and warns inline
+    Given there are no tasks
+    When I open the app
+    And I type a title with 250 characters in the new task input
+    Then the new task input contains 201 characters
+    And I see "Max 200 characters"
+    When I shorten the new task input to 200 characters
+    Then I do not see "Max 200 characters"

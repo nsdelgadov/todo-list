@@ -68,6 +68,7 @@ function App() {
         <input
           type="text"
           placeholder="New task"
+          maxLength={201}
           value={newTitle}
           onChange={(event) => setNewTitle(event.target.value)}
           disabled={submitting}
@@ -77,6 +78,7 @@ function App() {
           {submitting ? 'Adding…' : 'Add'}
         </button>
       </form>
+      {newTitle.length > 200 && <p role="status">Max 200 characters</p>}
       {createError && <p role="alert">{createError}</p>}
 
       {status === 'loading' && <p>Loading…</p>}

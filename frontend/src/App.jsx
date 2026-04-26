@@ -42,7 +42,12 @@ function App() {
         body: JSON.stringify({ title }),
       })
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        const data = await response.json().catch(() => null)
+        const fieldErrors =
+          data && typeof data === 'object' ? Object.values(data).flat() : []
+        const message = fieldErrors.find((m) => typeof m === 'string')
+        setCreateError(message || 'Failed to add task')
+        return
       }
       setNewTitle('')
       await loadTasks()

@@ -14,6 +14,15 @@ def _type_in_new_task_input(browser, text):
     field.send_keys(text)
 
 
+@when(parsers.parse("I type a title with {length:d} characters in the new task input"))
+def _type_title_of_length(browser, length):
+    field = browser.find_element(
+        By.CSS_SELECTOR, "input[aria-label='New task title']"
+    )
+    field.clear()
+    field.send_keys("a" * length)
+
+
 @when(parsers.parse('I click "{label}"'))
 def _click_button(browser, label):
     # Wait for the button to exist and be enabled. The label is the visible

@@ -6,14 +6,15 @@ Selenium + BDD (Gherkin) para el flujo completo.
 
 ## Estado actual
 
-- Backend Django expone `GET /api/tasks/` con el modelo `Task` (title, done,
-  created_at) usando Django REST Framework. Health check en `GET /health/`.
-- Frontend React lista las tareas con estados `loading` / `error` / `empty` /
-  `list`. Servido en `/` por Django (build de Vite) o por Vite dev server.
+- Backend Django expone `GET /api/tasks/` y `POST /api/tasks/` con el modelo
+  `Task` (title, done, created_at) usando Django REST Framework. Health
+  check en `GET /health/`.
+- Frontend React lista las tareas (`[x]` done / `[...]` pending) y permite
+  crear nuevas con un form (botón disabled + texto "Adding…" mientras se
+  hace la request, error visible si falla sin tirar la lista).
 - Tests unitarios para backend con pytest + pytest-django.
-- Tests end-to-end con Selenium + pytest-bdd: el primer escenario en
-  `e2e/features/view_tasks.feature` cubre la lista vacía y la lista con
-  tareas done/no done.
+- Tests end-to-end con Selenium + pytest-bdd: dos features cubren listar
+  (vacío y con tareas done/pending) y crear (alta exitosa).
 
 ## Requisitos
 
@@ -87,6 +88,32 @@ Respuesta (200):
 | `done` | bool | Si está marcada como hecha. Default `false`. |
 | `created_at` | ISO-8601 datetime | Timestamp de creación (read-only). |
 
+### `POST /api/tasks/`
+
+Crea una nueva tarea. `done` se asume `false` si no se manda; `id` y
+`created_at` los asigna el servidor.
+
+Petición:
+
+```http
+POST /api/tasks/
+Content-Type: application/json
+
+{ "title": "Buy bread" }
+```
+
+Respuestas:
+
+- `201 Created` con el objeto Task completo (mismo shape que el GET).
+- `400 Bad Request` si `title` falta o está vacío:
+  ```json
+  { "title": ["This field is required."] }
+  ```
+
+Notas de seguridad: el viewset desactiva `SessionAuthentication` y exige
+`AllowAny`, por lo que CSRF no aplica. Cuando el proyecto incorpore auth,
+el viewset volverá a tener restricciones explícitas.
+
 ## Frontend (React + Vite)
 
 Levantar el dev server de Vite en `http://localhost:5173/`:
@@ -125,12 +152,16 @@ pixi run frontend-dev
 
 Abre `http://localhost:5173/`:
 
+- Form arriba con un input "New task" + botón "Add". Botón se deshabilita y
+  pasa a "Adding…" mientras la request está en vuelo; si falla, aparece un
+  mensaje de error sin perder la lista. Útil con conexiones lentas.
 - Si no hay tareas → "No tasks yet"
-- Si hay tareas → lista con `[x] title` (done) o `[ ] title` (pendiente)
+- Si hay tareas → lista con `[x] title` (done) o `[...] title` (pendiente)
 - Si Django está caído → "Failed to load tasks"
 - Brevemente al cargar → "Loading…"
 
-Para poblar tareas crea algunas desde `/admin/`.
+Para crear tareas: usa el form, o desde `/admin/` (ese además permite
+marcarlas como done, lo que aún no hace el form).
 
 ## Tests end-to-end (BDD + Selenium)
 
@@ -229,9 +260,11 @@ todo-list/
 │       └── test-setup.js
 └── e2e/                   # suite end-to-end (BDD + Selenium)
     ├── pytest.ini         # config local (pythonpath = ..)
-    ├── conftest.py        # fixtures: browser (Chrome), live_server (autouse)
+    ├── conftest.py        # fixtures + steps reusables (Given/When/Then)
     ├── features/
-    │   └── view_tasks.feature
+    │   ├── view_tasks.feature
+    │   └── create_task.feature
     └── step_defs/
-        └── test_view_tasks.py
+        ├── test_view_tasks.py     # 2 líneas: scenarios("...")
+        └── test_create_task.py    # steps específicos del create
 ```

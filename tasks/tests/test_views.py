@@ -56,3 +56,44 @@ def test_list_exposes_expected_fields(client):
     assert task["done"] is False
     # id must be a UUID (not an enumerable int) — raises ValueError otherwise.
     uuid.UUID(task["id"])
+
+
+@pytest.mark.django_db
+def test_create_task_returns_201_and_persists(client):
+    response = client.post(
+        reverse("task-list"),
+        data={"title": "Buy bread"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "Buy bread"
+    assert body["done"] is False
+    uuid.UUID(body["id"])
+    assert Task.objects.filter(title="Buy bread").exists()
+
+
+@pytest.mark.django_db
+def test_create_without_title_returns_400(client):
+    response = client.post(
+        reverse("task-list"),
+        data={},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "title" in response.json()
+    assert Task.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_create_with_blank_title_returns_400(client):
+    response = client.post(
+        reverse("task-list"),
+        data={"title": ""},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert Task.objects.count() == 0

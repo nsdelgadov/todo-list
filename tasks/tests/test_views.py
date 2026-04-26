@@ -155,3 +155,31 @@ def test_patch_with_too_long_title_returns_400(client):
     assert response.status_code == 400
     task.refresh_from_db()
     assert task.title == "Buy milk"
+
+
+@pytest.mark.django_db
+def test_delete_removes_task(client):
+    task = Task.objects.create(title="Buy milk")
+
+    response = client.delete(reverse("task-detail", args=[task.pk]))
+
+    assert response.status_code == 204
+    assert not Task.objects.filter(pk=task.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_unknown_id_returns_404(client):
+    response = client.delete(reverse("task-detail", args=[uuid.uuid4()]))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_delete_does_not_affect_other_tasks(client):
+    keep = Task.objects.create(title="Keep me")
+    remove = Task.objects.create(title="Remove me")
+
+    client.delete(reverse("task-detail", args=[remove.pk]))
+
+    assert Task.objects.filter(pk=keep.pk).exists()
+    assert not Task.objects.filter(pk=remove.pk).exists()

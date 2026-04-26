@@ -6,21 +6,23 @@ Selenium + BDD (Gherkin) para el flujo completo.
 
 ## Estado actual
 
-- Backend Django expone `GET /api/tasks/`, `POST /api/tasks/` y
-  `PATCH /api/tasks/<id>/` con el modelo `Task`
-  (title, done, created_at) usando Django REST Framework. Health
-  check en `GET /health/`.
+- Backend Django expone `GET /api/tasks/`, `POST /api/tasks/`,
+  `PATCH /api/tasks/<id>/` y `DELETE /api/tasks/<id>/` con el modelo
+  `Task` (title, done, created_at) usando Django REST Framework.
+  Health check en `GET /health/`.
 - Frontend React lista las tareas con un checkbox por item (clickeable
-  para marcar/desmarcar como hecha), y permite crear nuevas con un
-  form (botón disabled + texto "Adding…" mientras se hace la request,
-  error visible si falla sin tirar la lista). Mientras se actualiza
-  un check, el checkbox queda deshabilitado y aparece "Saving…"
-  inline; si falla, vuelve al estado anterior con un error scoped al
-  item.
+  para marcar/desmarcar como hecha) y un botón "Delete" al lado, y
+  permite crear nuevas con un form (botón disabled + texto "Adding…"
+  mientras se hace la request, error visible si falla sin tirar la
+  lista). El botón de borrar usa un patrón de dos clicks: primer click
+  arma la confirmación ("Confirm delete?"), segundo borra. Mientras
+  vuelan los requests de toggle/delete, los controles del item quedan
+  deshabilitados con feedback inline ("Saving…" / "Deleting…"); si
+  fallan, error scoped al item.
 - Tests unitarios para backend con pytest + pytest-django.
-- Tests end-to-end con Selenium + pytest-bdd: tres features cubren
+- Tests end-to-end con Selenium + pytest-bdd: cuatro features cubren
   listar (vacío y con tareas done/pending), crear (alta + validaciones
-  cliente y servidor) y togglear el done state.
+  cliente y servidor), togglear el done state y borrar tareas.
 
 ## Requisitos
 
@@ -138,6 +140,15 @@ Respuestas:
   (mismo shape que en POST: `{ "title": [...] }`).
 - `404 Not Found` si el UUID no existe.
 
+### `DELETE /api/tasks/<id>/`
+
+Elimina la tarea. Sin body de petición ni de respuesta.
+
+Respuestas:
+
+- `204 No Content` cuando la tarea existía y fue borrada.
+- `404 Not Found` si el UUID no existe.
+
 Notas de seguridad: el viewset desactiva `SessionAuthentication` y exige
 `AllowAny`, por lo que CSRF no aplica. Cuando el proyecto incorpore auth,
 el viewset volverá a tener restricciones explícitas.
@@ -185,14 +196,17 @@ Abre `http://localhost:5173/`:
   mensaje de error sin perder la lista. Útil con conexiones lentas.
 - Si no hay tareas → "No tasks yet"
 - Si hay tareas → lista con un checkbox por item (clickeable para
-  togglear); mientras la request vuela el checkbox queda deshabilitado
-  con "Saving…" al lado. Si falla, error inline pegado a ese item.
+  togglear) y un botón "Delete" al lado. El botón usa dos clicks
+  (primer click pasa a "Confirm delete?", segundo borra). Mientras
+  vuela cualquier request del item, los controles quedan
+  deshabilitados con "Saving…" o "Deleting…" al lado. Si falla, error
+  inline pegado al item.
 - Si Django está caído → "Failed to load tasks"
 - Brevemente al cargar → "Loading…"
 
 Para crear tareas: usa el form. Para marcarlas como hechas: el checkbox
-del listado. `/admin/` sigue funcionando para gestión más fina si
-hiciera falta.
+del listado. Para eliminarlas: el botón Delete (dos clicks). `/admin/`
+sigue funcionando para gestión más fina si hiciera falta.
 
 ## Tests end-to-end (BDD + Selenium)
 
@@ -295,9 +309,11 @@ todo-list/
     ├── features/
     │   ├── view_tasks.feature
     │   ├── create_task.feature
-    │   └── toggle_done.feature
+    │   ├── toggle_done.feature
+    │   └── delete_task.feature
     └── step_defs/
         ├── test_view_tasks.py     # 2 líneas: scenarios("...")
         ├── test_create_task.py    # steps específicos del create
-        └── test_toggle_done.py    # 2 líneas: scenarios("...")
+        ├── test_toggle_done.py    # 2 líneas: scenarios("...")
+        └── test_delete_task.py    # 2 líneas: scenarios("...")
 ```

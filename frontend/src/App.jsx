@@ -8,6 +8,9 @@ function App() {
   const [createError, setCreateError] = useState(null)
   const [togglingIds, setTogglingIds] = useState(() => new Set())
   const [toggleErrors, setToggleErrors] = useState(() => new Map())
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null)
+  const [deletingIds, setDeletingIds] = useState(() => new Set())
+  const [deleteErrors, setDeleteErrors] = useState(() => new Map())
 
   const loadTasks = useCallback(async (signal) => {
     try {
@@ -101,6 +104,47 @@ function App() {
       })
   }
 
+  function handleDeleteClick(task) {
+    if (confirmingDeleteId === task.id) {
+      deleteTask(task)
+    } else {
+      setConfirmingDeleteId(task.id)
+      setDeleteErrors((prev) => {
+        if (!prev.has(task.id)) return prev
+        const next = new Map(prev)
+        next.delete(task.id)
+        return next
+      })
+    }
+  }
+
+  function deleteTask(task) {
+    setConfirmingDeleteId(null)
+    setDeletingIds((prev) => {
+      const next = new Set(prev)
+      next.add(task.id)
+      return next
+    })
+
+    fetch(`/api/tasks/${task.id}/`, { method: 'DELETE' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        setTasks((prev) => prev.filter((t) => t.id !== task.id))
+      })
+      .catch(() => {
+        setDeleteErrors((prev) =>
+          new Map(prev).set(task.id, 'Failed to delete')
+        )
+      })
+      .finally(() => {
+        setDeletingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      })
+  }
+
   const canSubmit = newTitle.trim().length > 0 && !submitting
 
   return (
@@ -132,6 +176,14 @@ function App() {
           {tasks.map((task) => {
             const isToggling = togglingIds.has(task.id)
             const toggleError = toggleErrors.get(task.id)
+            const isDeleting = deletingIds.has(task.id)
+            const isConfirmingDelete = confirmingDeleteId === task.id
+            const deleteError = deleteErrors.get(task.id)
+            const deleteLabel = isDeleting
+              ? 'Deleting…'
+              : isConfirmingDelete
+                ? 'Confirm delete?'
+                : 'Delete'
             return (
               <li key={task.id}>
                 <label>
@@ -139,13 +191,22 @@ function App() {
                     type="checkbox"
                     checked={task.done}
                     onChange={() => toggleDone(task)}
-                    disabled={isToggling}
+                    disabled={isToggling || isDeleting}
                   />
                   {' '}
                   {task.title}
                 </label>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClick(task)}
+                  disabled={isDeleting}
+                >
+                  {deleteLabel}
+                </button>
                 {isToggling && <span> Saving…</span>}
                 {toggleError && <span role="alert"> {toggleError}</span>}
+                {deleteError && <span role="alert"> {deleteError}</span>}
               </li>
             )
           })}

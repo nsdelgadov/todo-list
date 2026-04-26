@@ -28,8 +28,9 @@ def _shorten_new_task_input(browser, length):
     field = browser.find_element(
         By.CSS_SELECTOR, "input[aria-label='New task title']"
     )
+    current = field.get_attribute("value") or ""
     field.clear()
-    field.send_keys("a" * length)
+    field.send_keys(current[:length])
 
 
 @then(parsers.parse("the new task input contains {length:d} characters"))

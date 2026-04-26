@@ -97,6 +97,37 @@ def _set_checkbox(browser, title, target):
         cb.click()
 
 
+def _row_button(browser, title, label):
+    # Locate a button by its visible label inside the <li> whose <label>
+    # text equals the task title. Used for per-row buttons (Delete /
+    # Confirm delete?).
+    return browser.find_element(
+        By.XPATH,
+        f"//li[.//label[normalize-space()='{title}']]"
+        f"//button[normalize-space()='{label}']",
+    )
+
+
+@when(parsers.parse('I click "{label}" for "{title}"'))
+def _click_row_button(browser, label, title):
+    button = WebDriverWait(browser, 10).until(
+        lambda b: _row_button(b, title, label)
+    )
+    button.click()
+
+
+@then(parsers.parse('I see "{label}" for "{title}"'))
+def _then_row_button(browser, label, title):
+    WebDriverWait(browser, 10).until(lambda b: _row_button(b, title, label))
+
+
+@then(parsers.parse('"{title}" is no longer displayed'))
+def _then_no_longer_displayed(browser, title):
+    WebDriverWait(browser, 10).until(
+        lambda b: title not in b.find_element(By.TAG_NAME, "main").text
+    )
+
+
 # ----- Then (expectations) -----
 
 
@@ -129,6 +160,9 @@ def _then_done(browser, title):
     )
 
 
-@then(parsers.parse('I see "{message}"'))
+@then(parsers.re(r'^I see "(?P<message>[^"]+)"$'))
 def _then_message(browser, message):
+    # Regex (instead of parsers.parse) so the matcher rejects step strings
+    # that have inner quotes — otherwise 'I see "X" for "Y"' would also
+    # match here greedily and never reach the row-scoped matcher below.
     _wait_until_main_contains(browser, message)

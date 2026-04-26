@@ -78,6 +78,25 @@ def _when_open_app(browser, live_server):
     browser.get(live_server.url + "/")
 
 
+@when(parsers.parse('I check "{title}"'))
+def _check(browser, title):
+    _set_checkbox(browser, title, True)
+
+
+@when(parsers.parse('I uncheck "{title}"'))
+def _uncheck(browser, title):
+    _set_checkbox(browser, title, False)
+
+
+def _set_checkbox(browser, title, target):
+    # Wait for the task list to render before locating the checkbox; the
+    # initial GET /api/tasks/ is async and the React render lands a moment
+    # after the page loads.
+    cb = WebDriverWait(browser, 10).until(lambda b: _checkbox_for(b, title))
+    if cb.is_selected() != target:
+        cb.click()
+
+
 # ----- Then (expectations) -----
 
 
@@ -87,14 +106,27 @@ def _wait_until_main_contains(browser, expected):
     )
 
 
+def _checkbox_for(browser, title):
+    # The checkbox is wrapped in a <label> alongside the task title, so the
+    # label's normalized text is exactly the title.
+    return browser.find_element(
+        By.XPATH,
+        f"//label[normalize-space()='{title}']/input[@type='checkbox']",
+    )
+
+
 @then(parsers.parse('I see "{title}" displayed as not done'))
 def _then_pending(browser, title):
-    _wait_until_main_contains(browser, f"[...] {title}")
+    WebDriverWait(browser, 10).until(
+        lambda b: _checkbox_for(b, title).is_selected() is False
+    )
 
 
 @then(parsers.parse('I see "{title}" displayed as done'))
 def _then_done(browser, title):
-    _wait_until_main_contains(browser, f"[x] {title}")
+    WebDriverWait(browser, 10).until(
+        lambda b: _checkbox_for(b, title).is_selected() is True
+    )
 
 
 @then(parsers.parse('I see "{message}"'))

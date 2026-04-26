@@ -6,6 +6,8 @@ function App() {
   const [newTitle, setNewTitle] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [createError, setCreateError] = useState(null)
+  const [togglingIds, setTogglingIds] = useState(() => new Set())
+  const [toggleErrors, setToggleErrors] = useState(() => new Map())
 
   const loadTasks = useCallback(async (signal) => {
     try {
@@ -58,6 +60,47 @@ function App() {
     }
   }
 
+  function toggleDone(task) {
+    setTogglingIds((prev) => {
+      const next = new Set(prev)
+      next.add(task.id)
+      return next
+    })
+    setToggleErrors((prev) => {
+      if (!prev.has(task.id)) return prev
+      const next = new Map(prev)
+      next.delete(task.id)
+      return next
+    })
+
+    fetch(`/api/tasks/${task.id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: !task.done }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json()
+      })
+      .then((updated) => {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updated.id ? updated : t))
+        )
+      })
+      .catch(() => {
+        setToggleErrors((prev) =>
+          new Map(prev).set(task.id, 'Failed to update')
+        )
+      })
+      .finally(() => {
+        setTogglingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      })
+  }
+
   const canSubmit = newTitle.trim().length > 0 && !submitting
 
   return (
@@ -86,11 +129,26 @@ function App() {
       {status === 'ready' && tasks.length === 0 && <p>No tasks yet</p>}
       {status === 'ready' && tasks.length > 0 && (
         <ul>
-          {tasks.map((task) => (
-            <li key={task.id}>
-              {task.done ? '[x]' : '[...]'} {task.title}
-            </li>
-          ))}
+          {tasks.map((task) => {
+            const isToggling = togglingIds.has(task.id)
+            const toggleError = toggleErrors.get(task.id)
+            return (
+              <li key={task.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={task.done}
+                    onChange={() => toggleDone(task)}
+                    disabled={isToggling}
+                  />
+                  {' '}
+                  {task.title}
+                </label>
+                {isToggling && <span> Saving…</span>}
+                {toggleError && <span role="alert"> {toggleError}</span>}
+              </li>
+            )
+          })}
         </ul>
       )}
     </main>

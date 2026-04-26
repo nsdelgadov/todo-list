@@ -97,3 +97,61 @@ def test_create_with_blank_title_returns_400(client):
 
     assert response.status_code == 400
     assert Task.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_patch_marks_task_as_done(client):
+    task = Task.objects.create(title="Buy milk", done=False)
+
+    response = client.patch(
+        reverse("task-detail", args=[task.pk]),
+        data={"done": True},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["done"] is True
+    task.refresh_from_db()
+    assert task.done is True
+
+
+@pytest.mark.django_db
+def test_patch_marks_task_as_not_done(client):
+    task = Task.objects.create(title="Buy milk", done=True)
+
+    response = client.patch(
+        reverse("task-detail", args=[task.pk]),
+        data={"done": False},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["done"] is False
+    task.refresh_from_db()
+    assert task.done is False
+
+
+@pytest.mark.django_db
+def test_patch_unknown_id_returns_404(client):
+    response = client.patch(
+        reverse("task-detail", args=[uuid.uuid4()]),
+        data={"done": True},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_patch_with_too_long_title_returns_400(client):
+    task = Task.objects.create(title="Buy milk")
+
+    response = client.patch(
+        reverse("task-detail", args=[task.pk]),
+        data={"title": "a" * 201},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    task.refresh_from_db()
+    assert task.title == "Buy milk"

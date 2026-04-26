@@ -5,29 +5,29 @@ from selenium.webdriver.support.ui import WebDriverWait
 scenarios("../features/create_task.feature")
 
 
-@when(parsers.parse('I type "{text}" in the new task input'))
-def _type_in_new_task_input(browser, text):
-    field = browser.find_element(
+def _new_task_field(browser):
+    return browser.find_element(
         By.CSS_SELECTOR, "input[aria-label='New task title']"
     )
+
+
+@when(parsers.parse('I type "{text}" in the new task input'))
+def _type_in_new_task_input(browser, text):
+    field = _new_task_field(browser)
     field.clear()
     field.send_keys(text)
 
 
 @when(parsers.parse("I type a title with {length:d} characters in the new task input"))
 def _type_title_of_length(browser, length):
-    field = browser.find_element(
-        By.CSS_SELECTOR, "input[aria-label='New task title']"
-    )
+    field = _new_task_field(browser)
     field.clear()
     field.send_keys("a" * length)
 
 
 @when(parsers.parse("I shorten the new task input to {length:d} characters"))
 def _shorten_new_task_input(browser, length):
-    field = browser.find_element(
-        By.CSS_SELECTOR, "input[aria-label='New task title']"
-    )
+    field = _new_task_field(browser)
     current = field.get_attribute("value") or ""
     field.clear()
     field.send_keys(current[:length])
@@ -35,9 +35,7 @@ def _shorten_new_task_input(browser, length):
 
 @then(parsers.parse("the new task input contains {length:d} characters"))
 def _new_task_input_has_length(browser, length):
-    field = browser.find_element(
-        By.CSS_SELECTOR, "input[aria-label='New task title']"
-    )
+    field = _new_task_field(browser)
     WebDriverWait(browser, 10).until(
         lambda _: len(field.get_attribute("value")) == length
     )

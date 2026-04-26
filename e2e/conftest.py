@@ -78,6 +78,25 @@ def _when_open_app(browser, live_server):
     browser.get(live_server.url + "/")
 
 
+@when(parsers.parse('I check "{title}"'))
+def _check(browser, title):
+    _set_checkbox(browser, title, True)
+
+
+@when(parsers.parse('I uncheck "{title}"'))
+def _uncheck(browser, title):
+    _set_checkbox(browser, title, False)
+
+
+def _set_checkbox(browser, title, target):
+    # Wait for the task list to render before locating the checkbox; the
+    # initial GET /api/tasks/ is async and the React render lands a moment
+    # after the page loads.
+    cb = WebDriverWait(browser, 10).until(lambda b: _checkbox_for(b, title))
+    if cb.is_selected() != target:
+        cb.click()
+
+
 # ----- Then (expectations) -----
 
 

@@ -6,15 +6,21 @@ Selenium + BDD (Gherkin) para el flujo completo.
 
 ## Estado actual
 
-- Backend Django expone `GET /api/tasks/` y `POST /api/tasks/` con el modelo
-  `Task` (title, done, created_at) usando Django REST Framework. Health
+- Backend Django expone `GET /api/tasks/`, `POST /api/tasks/` y
+  `PATCH /api/tasks/<id>/` con el modelo `Task`
+  (title, done, created_at) usando Django REST Framework. Health
   check en `GET /health/`.
-- Frontend React lista las tareas (`[x]` done / `[...]` pending) y permite
-  crear nuevas con un form (botón disabled + texto "Adding…" mientras se
-  hace la request, error visible si falla sin tirar la lista).
+- Frontend React lista las tareas con un checkbox por item (clickeable
+  para marcar/desmarcar como hecha), y permite crear nuevas con un
+  form (botón disabled + texto "Adding…" mientras se hace la request,
+  error visible si falla sin tirar la lista). Mientras se actualiza
+  un check, el checkbox queda deshabilitado y aparece "Saving…"
+  inline; si falla, vuelve al estado anterior con un error scoped al
+  item.
 - Tests unitarios para backend con pytest + pytest-django.
-- Tests end-to-end con Selenium + pytest-bdd: dos features cubren listar
-  (vacío y con tareas done/pending) y crear (alta exitosa).
+- Tests end-to-end con Selenium + pytest-bdd: tres features cubren
+  listar (vacío y con tareas done/pending), crear (alta + validaciones
+  cliente y servidor) y togglear el done state.
 
 ## Requisitos
 
@@ -110,6 +116,28 @@ Respuestas:
   { "title": ["This field is required."] }
   ```
 
+### `PATCH /api/tasks/<id>/`
+
+Actualiza parcialmente una tarea. El frontend lo usa para togglear
+`done` desde el checkbox, pero también acepta cambios a `title`
+respetando la validación del serializer (no vacío, máximo 200 chars).
+
+Petición:
+
+```http
+PATCH /api/tasks/7e3a2b1c-4d5e-6f70-8192-a3b4c5d6e7f8/
+Content-Type: application/json
+
+{ "done": true }
+```
+
+Respuestas:
+
+- `200 OK` con el objeto Task actualizado completo.
+- `400 Bad Request` si algún campo viola las reglas del serializer
+  (mismo shape que en POST: `{ "title": [...] }`).
+- `404 Not Found` si el UUID no existe.
+
 Notas de seguridad: el viewset desactiva `SessionAuthentication` y exige
 `AllowAny`, por lo que CSRF no aplica. Cuando el proyecto incorpore auth,
 el viewset volverá a tener restricciones explícitas.
@@ -156,12 +184,15 @@ Abre `http://localhost:5173/`:
   pasa a "Adding…" mientras la request está en vuelo; si falla, aparece un
   mensaje de error sin perder la lista. Útil con conexiones lentas.
 - Si no hay tareas → "No tasks yet"
-- Si hay tareas → lista con `[x] title` (done) o `[...] title` (pendiente)
+- Si hay tareas → lista con un checkbox por item (clickeable para
+  togglear); mientras la request vuela el checkbox queda deshabilitado
+  con "Saving…" al lado. Si falla, error inline pegado a ese item.
 - Si Django está caído → "Failed to load tasks"
 - Brevemente al cargar → "Loading…"
 
-Para crear tareas: usa el form, o desde `/admin/` (ese además permite
-marcarlas como done, lo que aún no hace el form).
+Para crear tareas: usa el form. Para marcarlas como hechas: el checkbox
+del listado. `/admin/` sigue funcionando para gestión más fina si
+hiciera falta.
 
 ## Tests end-to-end (BDD + Selenium)
 
@@ -263,8 +294,10 @@ todo-list/
     ├── conftest.py        # fixtures + steps reusables (Given/When/Then)
     ├── features/
     │   ├── view_tasks.feature
-    │   └── create_task.feature
+    │   ├── create_task.feature
+    │   └── toggle_done.feature
     └── step_defs/
         ├── test_view_tasks.py     # 2 líneas: scenarios("...")
-        └── test_create_task.py    # steps específicos del create
+        ├── test_create_task.py    # steps específicos del create
+        └── test_toggle_done.py    # 2 líneas: scenarios("...")
 ```

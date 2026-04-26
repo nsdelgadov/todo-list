@@ -11,18 +11,20 @@ Selenium + BDD (Gherkin) para el flujo completo.
   `Task` (title, done, created_at) usando Django REST Framework.
   Health check en `GET /health/`.
 - Frontend React lista las tareas con un checkbox por item (clickeable
-  para marcar/desmarcar como hecha) y un botón "Delete" al lado, y
-  permite crear nuevas con un form (botón disabled + texto "Adding…"
-  mientras se hace la request, error visible si falla sin tirar la
-  lista). El botón de borrar usa un patrón de dos clicks: primer click
-  arma la confirmación ("Confirm delete?"), segundo borra. Mientras
-  vuelan los requests de toggle/delete, los controles del item quedan
-  deshabilitados con feedback inline ("Saving…" / "Deleting…"); si
-  fallan, error scoped al item.
+  para marcar/desmarcar como hecha) y los botones "Edit" y "Delete"
+  al lado, y permite crear nuevas con un form (botón disabled + texto
+  "Adding…" mientras se hace la request, error visible si falla sin
+  tirar la lista). "Edit" mete la row en modo edición (input inline +
+  Save/Cancel, mismas validaciones cliente que crear). "Delete" usa
+  un patrón de dos clicks: primer click arma la confirmación
+  ("Confirm delete?"), segundo borra. Mientras vuelan los requests
+  los controles del item quedan deshabilitados con feedback inline
+  ("Saving…" / "Deleting…"); si fallan, error scoped al item.
 - Tests unitarios para backend con pytest + pytest-django.
-- Tests end-to-end con Selenium + pytest-bdd: cuatro features cubren
+- Tests end-to-end con Selenium + pytest-bdd: cinco features cubren
   listar (vacío y con tareas done/pending), crear (alta + validaciones
-  cliente y servidor), togglear el done state y borrar tareas.
+  cliente y servidor), togglear el done state, borrar tareas y editar
+  el título.
 
 ## Requisitos
 
@@ -196,17 +198,20 @@ Abre `http://localhost:5173/`:
   mensaje de error sin perder la lista. Útil con conexiones lentas.
 - Si no hay tareas → "No tasks yet"
 - Si hay tareas → lista con un checkbox por item (clickeable para
-  togglear) y un botón "Delete" al lado. El botón usa dos clicks
-  (primer click pasa a "Confirm delete?", segundo borra). Mientras
-  vuela cualquier request del item, los controles quedan
-  deshabilitados con "Saving…" o "Deleting…" al lado. Si falla, error
-  inline pegado al item.
+  togglear), un botón "Edit" y un botón "Delete". "Edit" reemplaza el
+  título por un input inline con botones "Save" y "Cancel" (mismas
+  validaciones cliente que el form de crear: maxLength=201 + warning
+  si > 200). "Delete" usa dos clicks (primer click pasa a "Confirm
+  delete?", segundo borra). Mientras vuela cualquier request del item,
+  los controles quedan deshabilitados con "Saving…" o "Deleting…" al
+  lado. Si falla, error inline pegado al item.
 - Si Django está caído → "Failed to load tasks"
 - Brevemente al cargar → "Loading…"
 
 Para crear tareas: usa el form. Para marcarlas como hechas: el checkbox
-del listado. Para eliminarlas: el botón Delete (dos clicks). `/admin/`
-sigue funcionando para gestión más fina si hiciera falta.
+del listado. Para editar el título: el botón Edit. Para eliminarlas: el
+botón Delete (dos clicks). `/admin/` sigue funcionando para gestión más
+fina si hiciera falta.
 
 ## Tests end-to-end (BDD + Selenium)
 
@@ -310,10 +315,12 @@ todo-list/
     │   ├── view_tasks.feature
     │   ├── create_task.feature
     │   ├── toggle_done.feature
-    │   └── delete_task.feature
+    │   ├── delete_task.feature
+    │   └── edit_task.feature
     └── step_defs/
         ├── test_view_tasks.py     # 2 líneas: scenarios("...")
         ├── test_create_task.py    # steps específicos del create
         ├── test_toggle_done.py    # 2 líneas: scenarios("...")
-        └── test_delete_task.py    # 2 líneas: scenarios("...")
+        ├── test_delete_task.py    # 2 líneas: scenarios("...")
+        └── test_edit_task.py      # step específico del edit input
 ```

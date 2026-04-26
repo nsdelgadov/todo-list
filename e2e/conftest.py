@@ -78,6 +78,19 @@ def _when_open_app(browser, live_server):
     browser.get(live_server.url + "/")
 
 
+@when(parsers.parse('I click "{label}"'))
+def _click_button(browser, label):
+    # Wait for the button to exist and be enabled. The label is the visible
+    # text, which on transient buttons (Add → Adding…, Save → Saving…)
+    # flips while a request is in flight, so locating by current label
+    # avoids flakiness if a previous step left the button mid-submit.
+    locator = (By.XPATH, f"//button[normalize-space()='{label}']")
+    button = WebDriverWait(browser, 10).until(
+        lambda b: b.find_element(*locator) if b.find_element(*locator).is_enabled() else False
+    )
+    button.click()
+
+
 @when(parsers.parse('I check "{title}"'))
 def _check(browser, title):
     _set_checkbox(browser, title, True)

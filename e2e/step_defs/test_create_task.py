@@ -46,16 +46,3 @@ def _do_not_see_message(browser, message):
     WebDriverWait(browser, 10).until(
         lambda b: message not in b.find_element(By.TAG_NAME, "main").text
     )
-
-
-@when(parsers.parse('I click "{label}"'))
-def _click_button(browser, label):
-    # Wait for the button to exist and be enabled. The label is the visible
-    # text, which in the form goes from 'Add' → 'Adding…' while the request
-    # is in flight, so locating by label avoids flakiness if a previous step
-    # left the button mid-submit.
-    locator = (By.XPATH, f"//button[normalize-space()='{label}']")
-    button = WebDriverWait(browser, 10).until(
-        lambda b: b.find_element(*locator) if b.find_element(*locator).is_enabled() else False
-    )
-    button.click()
